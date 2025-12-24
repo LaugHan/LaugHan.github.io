@@ -3,293 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>刘姝妤圣诞快乐</title>
+    <title>圣诞树选择 · 刘姝妤圣诞快乐</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        /* 引入优雅的艺术字体 */
-        @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@700&display=swap');
-
-        body {
+        * {
             margin: 0;
             padding: 0;
-            background-color: #020205; /* 深邃夜空黑 */
-            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
-            height: 100vh;
+            justify-content: center;
+            flex-direction: column;
             font-family: 'Noto Serif SC', serif;
-        }
-
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-
-        /* 文字容器 */
-        .message-container {
-            position: relative;
-            z-index: 10;
-            text-align: center;
-            pointer-events: none; /* 让鼠标事件穿透文字，不影响观感 */
-            animation: float 3s ease-in-out infinite;
-        }
-
-        /* 主标题样式 */
-        .title {
-            font-family: 'Ma Shan Zheng', cursive; /* 书法风格 */
-            font-size: clamp(2rem, 5vw, 4rem); /* 响应式字体大小 */
+            background: radial-gradient(circle at top, #1b2735 0, #090a0f 55%, #020205 100%);
             color: #fff;
-            margin: 0;
-            padding: 0 20px;
-            letter-spacing: 5px;
-            
-            /* 金色流光渐变 */
+        }
+
+        .title {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: clamp(2.4rem, 5vw, 3.6rem);
+            letter-spacing: 6px;
+            margin-bottom: 0.5rem;
             background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
             background-clip: text;
             -webkit-background-clip: text;
             color: transparent;
-            
-            /* 发光效果 */
             text-shadow: 0 0 10px rgba(255, 215, 0, 0.5),
                          0 0 20px rgba(255, 215, 0, 0.3);
-            
-            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.8));
         }
 
-        /* 副标题/装饰线 */
         .subtitle {
-            font-family: 'Noto Serif SC', serif;
-            color: #dcdcdc;
-            font-size: clamp(0.8rem, 2vw, 1.2rem);
-            margin-top: 10px;
-            opacity: 0.8;
-            letter-spacing: 3px;
+            font-size: 0.9rem;
+            letter-spacing: 4px;
             text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 2.5rem;
         }
 
-        /* 文字浮动动画 */
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+        .card-container {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 0 1.5rem;
         }
 
-        /* 移动端适配调整 */
-        @media (max-width: 768px) {
-            .message-container {
-                margin-top: 20vh; /* 在手机上稍微往下一点，避开树尖 */
+        .card {
+            position: relative;
+            width: 240px;
+            padding: 1.5rem 1.4rem 1.6rem;
+            border-radius: 18px;
+            background: rgba(7, 10, 20, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(14px);
+            text-align: left;
+            transition: transform 0.22s ease-out, box-shadow 0.22s ease-out, border-color 0.22s ease-out;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top, rgba(255, 215, 0, 0.18), transparent 55%);
+            opacity: 0;
+            transition: opacity 0.22s ease-out;
+            pointer-events: none;
+        }
+
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 24px 55px rgba(0, 0, 0, 0.85);
+            border-color: rgba(255, 215, 0, 0.5);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.85rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .tag {
+            padding: 0.1rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .card-desc {
+            font-size: 0.86rem;
+            line-height: 1.6;
+            color: #e5e5e5;
+            opacity: 0.9;
+            margin-bottom: 1.2rem;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            color: #c0c0c0;
+            margin-bottom: 1.1rem;
+        }
+
+        .card-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+        }
+
+        .dot-1 {
+            background: #7bed9f;
+        }
+
+        .dot-2 {
+            background: #70a1ff;
+        }
+
+        .enter-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.55rem 1.3rem;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.86rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #bf953f, #fbf5b7, #b38728);
+            color: #1b1b1b;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+            transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+        }
+
+        .enter-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.7);
+        }
+
+        .enter-btn span {
+            font-size: 1rem;
+        }
+
+        .footer {
+            margin-top: 2.5rem;
+            font-size: 0.76rem;
+            opacity: 0.65;
+            letter-spacing: 2px;
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                width: 100%;
+                max-width: 320px;
             }
         }
     </style>
 </head>
 <body>
-
-    <!-- 画布用于绘制星星、雪花和树 -->
-    <canvas id="canvas"></canvas>
-
-    <!-- 中心文字 -->
-    <div class="message-container">
-        <h1 class="title">刘姝妤圣诞快乐</h1>
-        <div class="subtitle">MERRY CHRISTMAS & EVE</div>
+    <h1 class="title">刘姝妤圣诞快乐</h1>
+    <div class="subtitle">CHOOSE YOUR CHRISTMAS TREE</div>
+    <div class="card-container">
+        <article class="card">
+            <header class="card-header">
+                <h2 class="card-title">圣诞树 · 版本一</h2>
+                <span class="tag">tree 1</span>
+            </header>
+            <p class="card-desc">
+                经典版本，略微轻盈的树冠与柔和星光，旋转速度舒适，氛围温柔治愈。
+            </p>
+            <div class="card-meta">
+                <span><span class="dot dot-1"></span>轻盈梦幻</span>
+                <span>推荐：第一次观看</span>
+            </div>
+            <button class="enter-btn" onclick="location.href='tree1.html'">
+                进入树 1
+                <span>→</span>
+            </button>
+        </article>
+        <article class="card">
+            <header class="card-header">
+                <h2 class="card-title">圣诞树 · 版本二</h2>
+                <span class="tag">tree 2</span>
+            </header>
+            <p class="card-desc">
+                更华丽的粒子和装饰，更饱满的树冠与绚丽彩带，适合细细欣赏每个细节。
+            </p>
+            <div class="card-meta">
+                <span><span class="dot dot-2"></span>华丽闪耀</span>
+                <span>推荐：第二次探索</span>
+            </div>
+            <button class="enter-btn" onclick="location.href='tree2.html'">
+                进入树 2
+                <span>→</span>
+            </button>
+        </article>
     </div>
-
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-
-        let width, height;
-        let particles = [];
-        let snowParticles = [];
-        
-        // 树的参数配置
-        const TREE_HEIGHT = 200; // 树的高度基数
-        const TREE_WIDTH = 100;  // 树的宽度基数
-        const PARTICLE_COUNT = 800; // 构成树的粒子数量
-        
-        // 初始化画布大小
-        function resize() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
-        // 3D 投影逻辑
-        function project3D(x, y, z) {
-            const perspective = 300;
-            const scale = perspective / (perspective + z);
-            return {
-                x: width / 2 + x * scale,
-                y: height / 2 + y * scale + 50, // +50 让树稍微往下一点
-                scale: scale
-            };
-        }
-
-        // 粒子类（用于树）
-        class Particle {
-            constructor(i) {
-                // 利用螺旋算法生成树的形状
-                // t 从 0 到 1，代表树从顶到底
-                const t = i / PARTICLE_COUNT; 
-                
-                // 角度：随高度螺旋
-                this.theta = t * 30 * Math.PI; 
-                
-                // 半径：下面大上面小，形成圆锥
-                this.radius = t * TREE_WIDTH; 
-                
-                // 原始3D坐标
-                this.x = this.radius * Math.cos(this.theta);
-                this.y = t * TREE_HEIGHT - TREE_HEIGHT / 2; // 居中垂直位置
-                this.z = this.radius * Math.sin(this.theta);
-                
-                // 颜色逻辑：大部分是绿色，偶尔穿插红色和金色作为装饰
-                const random = Math.random();
-                if (random > 0.95) {
-                    this.color = `hsl(45, 100%, 60%)`; // 金色装饰
-                    this.sizeBase = 2.5;
-                } else if (random > 0.9) {
-                    this.color = `hsl(0, 80%, 60%)`; // 红色装饰
-                    this.sizeBase = 2.5;
-                } else {
-                    // 渐变绿色
-                    this.color = `hsl(${120 + Math.random() * 40}, 70%, ${50 + Math.random() * 20}%)`;
-                    this.sizeBase = 1.5;
-                }
-
-                // 闪烁偏移
-                this.blinkOffset = Math.random() * 100;
-            }
-
-            draw(angleOffset, time) {
-                // 旋转逻辑：围绕Y轴旋转
-                const cosA = Math.cos(angleOffset);
-                const sinA = Math.sin(angleOffset);
-
-                // 旋转后的X和Z
-                const rotX = this.x * cosA - this.z * sinA;
-                const rotZ = this.x * sinA + this.z * cosA;
-
-                // 投影到2D屏幕
-                const pos = project3D(rotX, this.y, rotZ);
-
-                // 只有在视野前方才绘制（简单的深度排序效果）
-                if (pos.scale > 0) {
-                    const blink = Math.sin(time * 0.005 + this.blinkOffset);
-                    const alpha = 0.6 + 0.4 * blink; // 闪烁透明度
-                    
-                    ctx.beginPath();
-                    ctx.fillStyle = this.color;
-                    ctx.globalAlpha = alpha;
-                    ctx.arc(pos.x, pos.y, this.sizeBase * pos.scale, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.globalAlpha = 1;
-                    
-                    // 为“灯光”添加一点光晕
-                    if (this.sizeBase > 2) {
-                        ctx.shadowBlur = 10 * pos.scale;
-                        ctx.shadowColor = this.color;
-                        ctx.fill();
-                        ctx.shadowBlur = 0;
-                    }
-                }
-            }
-        }
-
-        // 雪花类
-        class Snow {
-            constructor() {
-                this.reset();
-            }
-
-            reset() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * -height; // 从屏幕上方开始
-                this.speed = 0.5 + Math.random() * 1.5;
-                this.size = 0.5 + Math.random() * 2;
-                this.drift = (Math.random() - 0.5) * 0.5;
-            }
-
-            update() {
-                this.y += this.speed;
-                this.x += this.drift;
-
-                if (this.y > height) {
-                    this.reset();
-                }
-            }
-
-            draw() {
-                ctx.beginPath();
-                ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        // 初始化所有对象
-        function init() {
-            particles = [];
-            snowParticles = [];
-
-            // 创建树的粒子
-            for (let i = 0; i < PARTICLE_COUNT; i++) {
-                particles.push(new Particle(i));
-            }
-
-            // 创建雪花
-            for (let i = 0; i < 150; i++) {
-                snowParticles.push(new Snow());
-            }
-        }
-
-        // 动画主循环
-        let time = 0;
-        function animate() {
-            // 清空画布，带一点拖尾效果会有梦幻感，但这里为了清晰度完全清除
-            ctx.clearRect(0, 0, width, height);
-
-            time++;
-            // 树的旋转角度
-            const angleOffset = time * 0.01; 
-
-            // 绘制雪花（背景层）
-            snowParticles.forEach(snow => {
-                snow.update();
-                snow.draw();
-            });
-
-            // 绘制树（通过Z轴排序模拟3D遮挡）
-            // 注意：简单的点云不需要严格排序，但如果加上排序效果会更好
-            // 这里为了性能和效果平衡，直接绘制
-            particles.forEach(p => p.draw(angleOffset, time));
-
-            // 绘制树顶那颗大星星
-            const topPos = project3D(0, -TREE_HEIGHT / 2 - 5, 0);
-            ctx.beginPath();
-            ctx.fillStyle = "#FFD700"; // 金色
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = "#FFD700";
-            
-            // 简单的星形绘制
-            const starSize = 8 * topPos.scale;
-            ctx.arc(topPos.x, topPos.y, starSize, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-
-            requestAnimationFrame(animate);
-        }
-
-        init();
-        animate();
-
-        // 确保窗口大小改变时重置
-        window.addEventListener('resize', () => {
-            resize();
-            init();
-        });
-
-    </script>
+    <div class="footer">点击任意卡片下方按钮前往对应圣诞树</div>
 </body>
 </html>
+

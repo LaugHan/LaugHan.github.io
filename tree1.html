@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>刘姝妤圣诞快乐</title>
+    <style>
+        /* 引入优雅的艺术字体 */
+        @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@700&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #020205; /* 深邃夜空黑 */
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* 文字容器 */
+        .message-container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            pointer-events: none; /* 让鼠标事件穿透文字，不影响观感 */
+            animation: float 3s ease-in-out infinite;
+        }
+
+        /* 主标题样式 */
+        .title {
+            font-family: 'Ma Shan Zheng', cursive; /* 书法风格 */
+            font-size: clamp(2rem, 5vw, 4rem); /* 响应式字体大小 */
+            color: #fff;
+            margin: 0;
+            padding: 0 20px;
+            letter-spacing: 5px;
+            
+            /* 金色流光渐变 */
+            background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            
+            /* 发光效果 */
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5),
+                         0 0 20px rgba(255, 215, 0, 0.3);
+            
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.8));
+        }
+
+        /* 副标题/装饰线 */
+        .subtitle {
+            font-family: 'Noto Serif SC', serif;
+            color: #dcdcdc;
+            font-size: clamp(0.8rem, 2vw, 1.2rem);
+            margin-top: 10px;
+            opacity: 0.8;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* 文字浮动动画 */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* 移动端适配调整 */
+        @media (max-width: 768px) {
+            .message-container {
+                margin-top: 20vh; /* 在手机上稍微往下一点，避开树尖 */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 画布用于绘制星星、雪花和树 -->
+    <canvas id="canvas"></canvas>
+
+    <!-- 中心文字 -->
+    <div class="message-container">
+        <h1 class="title">刘姝妤圣诞快乐</h1>
+        <div class="subtitle">MERRY CHRISTMAS & EVE</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let particles = [];
+        let snowParticles = [];
+        
+        // 树的参数配置
+        const TREE_HEIGHT = 200; // 树的高度基数
+        const TREE_WIDTH = 100;  // 树的宽度基数
+        const PARTICLE_COUNT = 800; // 构成树的粒子数量
+        
+        // 初始化画布大小
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // 3D 投影逻辑
+        function project3D(x, y, z) {
+            const perspective = 300;
+            const scale = perspective / (perspective + z);
+            return {
+                x: width / 2 + x * scale,
+                y: height / 2 + y * scale + 50, // +50 让树稍微往下一点
+                scale: scale
+            };
+        }
+
+        // 粒子类（用于树）
+        class Particle {
+            constructor(i) {
+                // 利用螺旋算法生成树的形状
+                // t 从 0 到 1，代表树从顶到底
+                const t = i / PARTICLE_COUNT; 
+                
+                // 角度：随高度螺旋
+                this.theta = t * 30 * Math.PI; 
+                
+                // 半径：下面大上面小，形成圆锥
+                this.radius = t * TREE_WIDTH; 
+                
+                // 原始3D坐标
+                this.x = this.radius * Math.cos(this.theta);
+                this.y = t * TREE_HEIGHT - TREE_HEIGHT / 2; // 居中垂直位置
+                this.z = this.radius * Math.sin(this.theta);
+                
+                // 颜色逻辑：大部分是绿色，偶尔穿插红色和金色作为装饰
+                const random = Math.random();
+                if (random > 0.95) {
+                    this.color = `hsl(45, 100%, 60%)`; // 金色装饰
+                    this.sizeBase = 2.5;
+                } else if (random > 0.9) {
+                    this.color = `hsl(0, 80%, 60%)`; // 红色装饰
+                    this.sizeBase = 2.5;
+                } else {
+                    // 渐变绿色
+                    this.color = `hsl(${120 + Math.random() * 40}, 70%, ${50 + Math.random() * 20}%)`;
+                    this.sizeBase = 1.5;
+                }
+
+                // 闪烁偏移
+                this.blinkOffset = Math.random() * 100;
+            }
+
+            draw(angleOffset, time) {
+                // 旋转逻辑：围绕Y轴旋转
+                const cosA = Math.cos(angleOffset);
+                const sinA = Math.sin(angleOffset);
+
+                // 旋转后的X和Z
+                const rotX = this.x * cosA - this.z * sinA;
+                const rotZ = this.x * sinA + this.z * cosA;
+
+                // 投影到2D屏幕
+                const pos = project3D(rotX, this.y, rotZ);
+
+                // 只有在视野前方才绘制（简单的深度排序效果）
+                if (pos.scale > 0) {
+                    const blink = Math.sin(time * 0.005 + this.blinkOffset);
+                    const alpha = 0.6 + 0.4 * blink; // 闪烁透明度
+                    
+                    ctx.beginPath();
+                    ctx.fillStyle = this.color;
+                    ctx.globalAlpha = alpha;
+                    ctx.arc(pos.x, pos.y, this.sizeBase * pos.scale, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                    
+                    // 为“灯光”添加一点光晕
+                    if (this.sizeBase > 2) {
+                        ctx.shadowBlur = 10 * pos.scale;
+                        ctx.shadowColor = this.color;
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    }
+                }
+            }
+        }
+
+        // 雪花类
+        class Snow {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * -height; // 从屏幕上方开始
+                this.speed = 0.5 + Math.random() * 1.5;
+                this.size = 0.5 + Math.random() * 2;
+                this.drift = (Math.random() - 0.5) * 0.5;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.x += this.drift;
+
+                if (this.y > height) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 初始化所有对象
+        function init() {
+            particles = [];
+            snowParticles = [];
+
+            // 创建树的粒子
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                particles.push(new Particle(i));
+            }
+
+            // 创建雪花
+            for (let i = 0; i < 150; i++) {
+                snowParticles.push(new Snow());
+            }
+        }
+
+        // 动画主循环
+        let time = 0;
+        function animate() {
+            // 清空画布，带一点拖尾效果会有梦幻感，但这里为了清晰度完全清除
+            ctx.clearRect(0, 0, width, height);
+
+            time++;
+            // 树的旋转角度
+            const angleOffset = time * 0.01; 
+
+            // 绘制雪花（背景层）
+            snowParticles.forEach(snow => {
+                snow.update();
+                snow.draw();
+            });
+
+            // 绘制树（通过Z轴排序模拟3D遮挡）
+            // 注意：简单的点云不需要严格排序，但如果加上排序效果会更好
+            // 这里为了性能和效果平衡，直接绘制
+            particles.forEach(p => p.draw(angleOffset, time));
+
+            // 绘制树顶那颗大星星
+            const topPos = project3D(0, -TREE_HEIGHT / 2 - 5, 0);
+            ctx.beginPath();
+            ctx.fillStyle = "#FFD700"; // 金色
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = "#FFD700";
+            
+            // 简单的星形绘制
+            const starSize = 8 * topPos.scale;
+            ctx.arc(topPos.x, topPos.y, starSize, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            requestAnimationFrame(animate);
+        }
+
+        init();
+        animate();
+
+        // 确保窗口大小改变时重置
+        window.addEventListener('resize', () => {
+            resize();
+            init();
+        });
+
+    </script>
+</body>
+</html>

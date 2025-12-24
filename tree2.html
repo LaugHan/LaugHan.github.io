@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>刘姝妤圣诞快乐</title>
+    <style>
+        /* 引入优雅的艺术字体 - 保持不变 */
+        @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@700&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at center bottom, #1a1a2e 0%, #020205 100%); /* 背景微调，增加一点深邃的层次感 */
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* 文字容器 */
+        .message-container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            pointer-events: none;
+            animation: float 4s ease-in-out infinite; /* 稍微放慢浮动速度，更优雅 */
+            /* 稍微上移一点，避免遮挡更茂盛的树冠 */
+            transform: translateY(-20px); 
+        }
+
+        /* 主标题样式 - 保持不变 */
+        .title {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: clamp(2.5rem, 6vw, 4.5rem); /* 稍微加大一点气势 */
+            color: #fff;
+            margin: 0;
+            padding: 0 20px;
+            letter-spacing: 5px;
+            
+            /* 金色流光渐变 */
+            background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5),
+                         0 0 20px rgba(255, 215, 0, 0.3);
+            
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.8));
+        }
+
+        /* 副标题/装饰线 */
+        .subtitle {
+            font-family: 'Noto Serif SC', serif;
+            color: #dcdcdc;
+            font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+            margin-top: 15px;
+            opacity: 0.9;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        @media (max-width: 768px) {
+            .message-container {
+                margin-top: 15vh;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <div class="message-container">
+        <h1 class="title">刘姝妤圣诞快乐</h1>
+        <div class="subtitle">MERRY CHRISTMAS & EVE</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let particles = [];
+        let snowParticles = [];
+        
+        // 树的配置 - 更华丽的比例
+        const TREE_HEIGHT = 280; 
+        const TREE_WIDTH = 140;  
+        // 粒子分类数量
+        const LEAF_COUNT = 1200;    // 树叶
+        const RIBBON_COUNT = 300;   // 金色彩带
+        const ORNAMENT_COUNT = 60;  // 装饰彩球
+        
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function project3D(x, y, z) {
+            const perspective = 350; // 调整透视感
+            const scale = perspective / (perspective + z);
+            return {
+                x: width / 2 + x * scale,
+                y: height / 2 + y * scale + 60, 
+                scale: scale
+            };
+        }
+
+        // 通用粒子类
+        class Particle {
+            constructor(type, index, total) {
+                this.type = type; // 'leaf', 'ribbon', 'ornament'
+                this.init(index, total);
+            }
+
+            init(index, total) {
+                const t = index / total; // 0 到 1 的进度
+
+                if (this.type === 'leaf') {
+                    // 树叶：随机分布在圆锥体内，但偏向表面
+                    this.h = t * TREE_HEIGHT; // 高度
+                    const maxR = (1 - t) * TREE_WIDTH; // 该高度的最大半径
+                    
+                    // 随机半径，让树看起来有厚度，不仅仅是空心壳
+                    const r = maxR * Math.sqrt(Math.random() * 0.8 + 0.2); 
+                    const angle = Math.random() * Math.PI * 2;
+
+                    this.x = r * Math.cos(angle);
+                    this.y = this.h - TREE_HEIGHT / 2;
+                    this.z = r * Math.sin(angle);
+
+                    // 丰富的绿色层次
+                    const green = Math.floor(100 + Math.random() * 155);
+                    const hue = 140 + Math.random() * 30; // 偏蓝绿到黄绿
+                    this.color = `hsla(${hue}, 80%, 40%, 0.8)`;
+                    this.sizeBase = 1.5 + Math.random();
+                    this.blinkSpeed = 0.002 + Math.random() * 0.005;
+
+                } else if (this.type === 'ribbon') {
+                    // 彩带：严格的双螺旋结构
+                    this.h = t * TREE_HEIGHT;
+                    const maxR = (1 - t) * TREE_WIDTH + 5; // 比树叶稍微突出一丢丢
+                    const angle = t * 20 + Math.PI; // 紧密的螺旋
+
+                    this.x = maxR * Math.cos(angle);
+                    this.y = this.h - TREE_HEIGHT / 2;
+                    this.z = maxR * Math.sin(angle);
+
+                    this.color = `hsla(45, 100%, 70%, 0.9)`; // 金色
+                    this.sizeBase = 2.0;
+                    this.blinkSpeed = 0; // 彩带持续发光
+
+                } else if (this.type === 'ornament') {
+                    // 装饰球：随机挂在树表面
+                    this.h = Math.random() * TREE_HEIGHT;
+                    const progress = this.h / TREE_HEIGHT;
+                    const maxR = (1 - progress) * TREE_WIDTH;
+                    
+                    const angle = Math.random() * Math.PI * 2;
+                    
+                    this.x = maxR * Math.cos(angle);
+                    this.y = this.h - TREE_HEIGHT / 2;
+                    this.z = maxR * Math.sin(angle);
+
+                    // 红、金、蓝、银四种经典圣诞色
+                    const rand = Math.random();
+                    if (rand < 0.4) this.color = 'hsla(350, 90%, 60%, 1)'; // 红
+                    else if (rand < 0.7) this.color = 'hsla(45, 90%, 60%, 1)'; // 金
+                    else if (rand < 0.9) this.color = 'hsla(210, 90%, 70%, 1)'; // 冰蓝
+                    else this.color = 'hsla(0, 0%, 90%, 1)'; // 银
+
+                    this.sizeBase = 3.5 + Math.random() * 1.5; // 球比较大
+                    this.blinkSpeed = 0.005 + Math.random() * 0.01;
+                }
+                
+                this.blinkOffset = Math.random() * 100;
+            }
+
+            draw(angleOffset, time) {
+                // 旋转逻辑
+                const cosA = Math.cos(angleOffset);
+                const sinA = Math.sin(angleOffset);
+
+                const rotX = this.x * cosA - this.z * sinA;
+                const rotZ = this.x * sinA + this.z * cosA;
+
+                const pos = project3D(rotX, this.y, rotZ);
+
+                if (pos.scale > 0) {
+                    // 闪烁逻辑
+                    let alpha = 1;
+                    if (this.type === 'leaf') {
+                        alpha = 0.5 + 0.5 * Math.sin(time * this.blinkSpeed + this.blinkOffset);
+                    } else if (this.type === 'ornament') {
+                        // 装饰球有呼吸灯效果
+                        alpha = 0.8 + 0.2 * Math.sin(time * 0.005 + this.blinkOffset);
+                    }
+
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = this.color;
+                    
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, this.sizeBase * pos.scale, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 华丽的光晕效果
+                    if (this.type === 'ornament' || this.type === 'ribbon') {
+                        ctx.shadowBlur = 10 * pos.scale;
+                        ctx.shadowColor = this.color;
+                        ctx.fill(); // 重绘一次加强光晕
+                        ctx.shadowBlur = 0;
+                    }
+                    
+                    ctx.globalAlpha = 1;
+                }
+            }
+        }
+
+        // 雪花类
+        class Snow {
+            constructor() {
+                this.reset();
+                this.y = Math.random() * height; // 初始铺满屏幕
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = -10;
+                this.speed = 0.2 + Math.random() * 0.8;
+                this.size = 0.5 + Math.random() * 2;
+                this.drift = (Math.random() - 0.5) * 0.5;
+                this.opacity = 0.4 + Math.random() * 0.6;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.x += this.drift;
+                if (this.y > height) this.reset();
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function init() {
+            particles = [];
+            snowParticles = [];
+
+            // 生成树叶
+            for (let i = 0; i < LEAF_COUNT; i++) particles.push(new Particle('leaf', i, LEAF_COUNT));
+            // 生成彩带
+            for (let i = 0; i < RIBBON_COUNT; i++) particles.push(new Particle('ribbon', i, RIBBON_COUNT));
+            // 生成装饰球
+            for (let i = 0; i < ORNAMENT_COUNT; i++) particles.push(new Particle('ornament', i, ORNAMENT_COUNT));
+            
+            // 生成雪花
+            for (let i = 0; i < 200; i++) snowParticles.push(new Snow());
+        }
+
+        // 绘制更复杂的星星
+        function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            let step = Math.PI / spikes;
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 20;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        let time = 0;
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            // 绘制背景微弱的光晕，模拟地面的反射
+            const gradient = ctx.createRadialGradient(width/2, height/2 + 150, 10, width/2, height/2 + 150, 300);
+            gradient.addColorStop(0, "rgba(20, 40, 60, 0.2)");
+            gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            time++;
+            const angleOffset = time * 0.008; // 旋转速度
+
+            // 1. 绘制雪花 (背景层)
+            snowParticles.forEach(p => { p.update(); p.draw(); });
+
+            // 2. 绘制树 (按Y轴排序其实更好，但这里用简单的Z轴混合也很有氛围)
+            // 为了让背面的粒子变暗，增强立体感，可以做一个简单的排序
+            particles.sort((a, b) => {
+                // 预计算旋转后的Z坐标用于排序（稍微有点消耗性能，但效果好）
+                const cosA = Math.cos(angleOffset);
+                const sinA = Math.sin(angleOffset);
+                const zA = a.x * sinA + a.z * cosA;
+                const zB = b.x * sinA + b.z * cosA;
+                return zA - zB;
+            });
+
+            particles.forEach(p => p.draw(angleOffset, time));
+
+            // 3. 绘制树顶星星
+            const topPos = project3D(0, -TREE_HEIGHT / 2 - 2, 0);
+            if (topPos.scale > 0) {
+                // 星星自转
+                ctx.save();
+                ctx.translate(topPos.x, topPos.y);
+                ctx.rotate(time * 0.01); 
+                // 呼吸效果
+                const scale = 1 + 0.1 * Math.sin(time * 0.05);
+                ctx.scale(scale, scale);
+                drawStar(0, 0, 5, 12 * topPos.scale, 5 * topPos.scale, "#FFD700");
+                
+                // 星星中心的高亮
+                ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+                ctx.beginPath();
+                ctx.arc(0, 0, 3 * topPos.scale, 0, Math.PI*2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        init();
+        animate();
+
+        window.addEventListener('resize', () => {
+            resize();
+            init();
+        });
+
+    </script>
+</body>
+</html>
