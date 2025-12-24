@@ -5,19 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>刘姝妤圣诞快乐</title>
     <style>
-        /* 引入优雅的艺术字体 - 保持不变 */
+        /* 引入优雅的艺术字体 */
         @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@700&display=swap');
 
         body {
             margin: 0;
             padding: 0;
-            background: radial-gradient(circle at center bottom, #1a1a2e 0%, #020205 100%); /* 背景微调，增加一点深邃的层次感 */
+            background: radial-gradient(circle at center bottom, #1a1a2e 0%, #020205 100%);
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             font-family: 'Noto Serif SC', serif;
+            cursor: grab; /* 提示用户可以抓取 */
+        }
+        
+        body:active {
+            cursor: grabbing;
         }
 
         canvas {
@@ -32,16 +37,16 @@
             position: relative;
             z-index: 10;
             text-align: center;
-            pointer-events: none;
-            animation: float 4s ease-in-out infinite; /* 稍微放慢浮动速度，更优雅 */
-            /* 稍微上移一点，避免遮挡更茂盛的树冠 */
+            pointer-events: none; /* 让鼠标事件穿透文字，不影响拖拽树木 */
+            animation: float 4s ease-in-out infinite;
             transform: translateY(-20px); 
+            user-select: none; /* 防止拖拽时选中文字 */
         }
 
-        /* 主标题样式 - 保持不变 */
+        /* 主标题样式 */
         .title {
             font-family: 'Ma Shan Zheng', cursive;
-            font-size: clamp(2.5rem, 6vw, 4.5rem); /* 稍微加大一点气势 */
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
             color: #fff;
             margin: 0;
             padding: 0 20px;
@@ -59,7 +64,7 @@
             filter: drop-shadow(0 5px 15px rgba(0,0,0,0.8));
         }
 
-        /* 副标题/装饰线 */
+        /* 副标题 */
         .subtitle {
             font-family: 'Noto Serif SC', serif;
             color: #dcdcdc;
@@ -70,10 +75,26 @@
             text-transform: uppercase;
             text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
         }
+        
+        /* 交互提示 */
+        .hint {
+            position: absolute;
+            bottom: 30px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.8rem;
+            z-index: 5;
+            pointer-events: none;
+            animation: fade 3s infinite;
+        }
 
         @keyframes float {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-15px); }
+        }
+        
+        @keyframes fade {
+            0%, 100% { opacity: 0.1; }
+            50% { opacity: 0.5; }
         }
 
         @media (max-width: 768px) {
@@ -91,6 +112,8 @@
         <h1 class="title">刘姝妤圣诞快乐</h1>
         <div class="subtitle">MERRY CHRISTMAS & EVE</div>
     </div>
+    
+    <div class="hint">拖拽旋转 / Drag to Rotate</div>
 
     <script>
         const canvas = document.getElementById('canvas');
@@ -100,13 +123,23 @@
         let particles = [];
         let snowParticles = [];
         
-        // 树的配置 - 更华丽的比例
+        // 树的配置
         const TREE_HEIGHT = 280; 
         const TREE_WIDTH = 140;  
-        // 粒子分类数量
-        const LEAF_COUNT = 1200;    // 树叶
-        const RIBBON_COUNT = 300;   // 金色彩带
-        const ORNAMENT_COUNT = 60;  // 装饰彩球
+        const LEAF_COUNT = 1200;    
+        const RIBBON_COUNT = 300;   
+        const ORNAMENT_COUNT = 60;  
+
+        // 交互状态变量
+        let rotationY = 0;      // 当前旋转角度（Y轴）
+        let rotationX = 0;      // 当前倾斜角度（X轴）
+        let targetRotationY = 0; // 目标旋转角度（用于平滑）
+        let targetRotationX = 0; 
+        
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        let autoRotateSpeed = 0.005; // 自动旋转速度
         
         function resize() {
             width = canvas.width = window.innerWidth;
@@ -115,8 +148,69 @@
         window.addEventListener('resize', resize);
         resize();
 
+        // 绑定交互事件
+        function initInteraction() {
+            // 鼠标事件
+            document.addEventListener('mousedown', e => {
+                isDragging = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                autoRotateSpeed = 0; // 拖拽时停止自动旋转
+            });
+
+            document.addEventListener('mousemove', e => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - lastMouseX;
+                const deltaY = e.clientY - lastMouseY;
+                
+                targetRotationY += deltaX * 0.005;
+                targetRotationX += deltaY * 0.005;
+                
+                // 限制俯仰角度，防止翻转
+                targetRotationX = Math.max(-0.5, Math.min(0.5, targetRotationX));
+
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                // 恢复微弱的自动旋转，方向跟随最后的拖拽方向
+                // autoRotateSpeed = 0.002; 
+            });
+
+            // 触摸事件 (移动端)
+            document.addEventListener('touchstart', e => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    lastMouseX = e.touches[0].clientX;
+                    lastMouseY = e.touches[0].clientY;
+                    autoRotateSpeed = 0;
+                }
+            }, {passive: false});
+
+            document.addEventListener('touchmove', e => {
+                if (!isDragging) return;
+                e.preventDefault(); // 防止页面滚动
+                const deltaX = e.touches[0].clientX - lastMouseX;
+                const deltaY = e.touches[0].clientY - lastMouseY;
+                
+                targetRotationY += deltaX * 0.008; // 移动端灵敏度稍高
+                targetRotationX += deltaY * 0.008;
+                targetRotationX = Math.max(-0.5, Math.min(0.5, targetRotationX));
+
+                lastMouseX = e.touches[0].clientX;
+                lastMouseY = e.touches[0].clientY;
+            }, {passive: false});
+
+            document.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+        }
+        initInteraction();
+
         function project3D(x, y, z) {
-            const perspective = 350; // 调整透视感
+            const perspective = 350; 
             const scale = perspective / (perspective + z);
             return {
                 x: width / 2 + x * scale,
@@ -125,93 +219,85 @@
             };
         }
 
-        // 通用粒子类
+        // 3D 旋转辅助函数
+        function rotatePoint(x, y, z, rY, rX) {
+            // 1. 绕Y轴旋转 (左右旋转)
+            const cosY = Math.cos(rY);
+            const sinY = Math.sin(rY);
+            const x1 = x * cosY - z * sinY;
+            const z1 = x * sinY + z * cosY;
+            const y1 = y;
+
+            // 2. 绕X轴旋转 (上下俯仰)
+            const cosX = Math.cos(rX);
+            const sinX = Math.sin(rX);
+            const y2 = y1 * cosX - z1 * sinX;
+            const z2 = y1 * sinX + z1 * cosX;
+            const x2 = x1;
+
+            return { x: x2, y: y2, z: z2 };
+        }
+
         class Particle {
             constructor(type, index, total) {
-                this.type = type; // 'leaf', 'ribbon', 'ornament'
+                this.type = type; 
                 this.init(index, total);
             }
 
             init(index, total) {
-                const t = index / total; // 0 到 1 的进度
+                const t = index / total; 
 
                 if (this.type === 'leaf') {
-                    // 树叶：随机分布在圆锥体内，但偏向表面
-                    this.h = t * TREE_HEIGHT; // 高度
-                    const maxR = (1 - t) * TREE_WIDTH; // 该高度的最大半径
-                    
-                    // 随机半径，让树看起来有厚度，不仅仅是空心壳
+                    this.h = t * TREE_HEIGHT; 
+                    const maxR = (1 - t) * TREE_WIDTH; 
                     const r = maxR * Math.sqrt(Math.random() * 0.8 + 0.2); 
                     const angle = Math.random() * Math.PI * 2;
-
                     this.x = r * Math.cos(angle);
                     this.y = this.h - TREE_HEIGHT / 2;
                     this.z = r * Math.sin(angle);
-
-                    // 丰富的绿色层次
-                    const green = Math.floor(100 + Math.random() * 155);
-                    const hue = 140 + Math.random() * 30; // 偏蓝绿到黄绿
+                    const hue = 140 + Math.random() * 30; 
                     this.color = `hsla(${hue}, 80%, 40%, 0.8)`;
                     this.sizeBase = 1.5 + Math.random();
                     this.blinkSpeed = 0.002 + Math.random() * 0.005;
-
                 } else if (this.type === 'ribbon') {
-                    // 彩带：严格的双螺旋结构
                     this.h = t * TREE_HEIGHT;
-                    const maxR = (1 - t) * TREE_WIDTH + 5; // 比树叶稍微突出一丢丢
-                    const angle = t * 20 + Math.PI; // 紧密的螺旋
-
+                    const maxR = (1 - t) * TREE_WIDTH + 5; 
+                    const angle = t * 20 + Math.PI; 
                     this.x = maxR * Math.cos(angle);
                     this.y = this.h - TREE_HEIGHT / 2;
                     this.z = maxR * Math.sin(angle);
-
-                    this.color = `hsla(45, 100%, 70%, 0.9)`; // 金色
+                    this.color = `hsla(45, 100%, 70%, 0.9)`; 
                     this.sizeBase = 2.0;
-                    this.blinkSpeed = 0; // 彩带持续发光
-
+                    this.blinkSpeed = 0; 
                 } else if (this.type === 'ornament') {
-                    // 装饰球：随机挂在树表面
                     this.h = Math.random() * TREE_HEIGHT;
                     const progress = this.h / TREE_HEIGHT;
                     const maxR = (1 - progress) * TREE_WIDTH;
-                    
                     const angle = Math.random() * Math.PI * 2;
-                    
                     this.x = maxR * Math.cos(angle);
                     this.y = this.h - TREE_HEIGHT / 2;
                     this.z = maxR * Math.sin(angle);
-
-                    // 红、金、蓝、银四种经典圣诞色
                     const rand = Math.random();
-                    if (rand < 0.4) this.color = 'hsla(350, 90%, 60%, 1)'; // 红
-                    else if (rand < 0.7) this.color = 'hsla(45, 90%, 60%, 1)'; // 金
-                    else if (rand < 0.9) this.color = 'hsla(210, 90%, 70%, 1)'; // 冰蓝
-                    else this.color = 'hsla(0, 0%, 90%, 1)'; // 银
-
-                    this.sizeBase = 3.5 + Math.random() * 1.5; // 球比较大
+                    if (rand < 0.4) this.color = 'hsla(350, 90%, 60%, 1)'; 
+                    else if (rand < 0.7) this.color = 'hsla(45, 90%, 60%, 1)'; 
+                    else if (rand < 0.9) this.color = 'hsla(210, 90%, 70%, 1)'; 
+                    else this.color = 'hsla(0, 0%, 90%, 1)'; 
+                    this.sizeBase = 3.5 + Math.random() * 1.5; 
                     this.blinkSpeed = 0.005 + Math.random() * 0.01;
                 }
-                
                 this.blinkOffset = Math.random() * 100;
             }
 
-            draw(angleOffset, time) {
-                // 旋转逻辑
-                const cosA = Math.cos(angleOffset);
-                const sinA = Math.sin(angleOffset);
-
-                const rotX = this.x * cosA - this.z * sinA;
-                const rotZ = this.x * sinA + this.z * cosA;
-
-                const pos = project3D(rotX, this.y, rotZ);
+            draw(time) {
+                // 应用旋转
+                const p3d = rotatePoint(this.x, this.y, this.z, rotationY, rotationX);
+                const pos = project3D(p3d.x, p3d.y, p3d.z);
 
                 if (pos.scale > 0) {
-                    // 闪烁逻辑
                     let alpha = 1;
                     if (this.type === 'leaf') {
                         alpha = 0.5 + 0.5 * Math.sin(time * this.blinkSpeed + this.blinkOffset);
                     } else if (this.type === 'ornament') {
-                        // 装饰球有呼吸灯效果
                         alpha = 0.8 + 0.2 * Math.sin(time * 0.005 + this.blinkOffset);
                     }
 
@@ -222,26 +308,24 @@
                     ctx.arc(pos.x, pos.y, this.sizeBase * pos.scale, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // 华丽的光晕效果
                     if (this.type === 'ornament' || this.type === 'ribbon') {
                         ctx.shadowBlur = 10 * pos.scale;
                         ctx.shadowColor = this.color;
-                        ctx.fill(); // 重绘一次加强光晕
+                        ctx.fill(); 
                         ctx.shadowBlur = 0;
                     }
-                    
                     ctx.globalAlpha = 1;
                 }
+                // 返回变换后的Z值用于排序
+                return p3d.z; 
             }
         }
 
-        // 雪花类
         class Snow {
             constructor() {
                 this.reset();
-                this.y = Math.random() * height; // 初始铺满屏幕
+                this.y = Math.random() * height; 
             }
-
             reset() {
                 this.x = Math.random() * width;
                 this.y = -10;
@@ -250,13 +334,11 @@
                 this.drift = (Math.random() - 0.5) * 0.5;
                 this.opacity = 0.4 + Math.random() * 0.6;
             }
-
             update() {
                 this.y += this.speed;
                 this.x += this.drift;
                 if (this.y > height) this.reset();
             }
-
             draw() {
                 ctx.beginPath();
                 ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
@@ -268,25 +350,17 @@
         function init() {
             particles = [];
             snowParticles = [];
-
-            // 生成树叶
             for (let i = 0; i < LEAF_COUNT; i++) particles.push(new Particle('leaf', i, LEAF_COUNT));
-            // 生成彩带
             for (let i = 0; i < RIBBON_COUNT; i++) particles.push(new Particle('ribbon', i, RIBBON_COUNT));
-            // 生成装饰球
             for (let i = 0; i < ORNAMENT_COUNT; i++) particles.push(new Particle('ornament', i, ORNAMENT_COUNT));
-            
-            // 生成雪花
             for (let i = 0; i < 200; i++) snowParticles.push(new Snow());
         }
 
-        // 绘制更复杂的星星
         function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
             let rot = Math.PI / 2 * 3;
             let x = cx;
             let y = cy;
             let step = Math.PI / spikes;
-
             ctx.beginPath();
             ctx.moveTo(cx, cy - outerRadius);
             for (let i = 0; i < spikes; i++) {
@@ -294,7 +368,6 @@
                 y = cy + Math.sin(rot) * outerRadius;
                 ctx.lineTo(x, y);
                 rot += step;
-
                 x = cx + Math.cos(rot) * innerRadius;
                 y = cy + Math.sin(rot) * innerRadius;
                 ctx.lineTo(x, y);
@@ -313,7 +386,6 @@
         function animate() {
             ctx.clearRect(0, 0, width, height);
 
-            // 绘制背景微弱的光晕，模拟地面的反射
             const gradient = ctx.createRadialGradient(width/2, height/2 + 150, 10, width/2, height/2 + 150, 300);
             gradient.addColorStop(0, "rgba(20, 40, 60, 0.2)");
             gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
@@ -321,42 +393,45 @@
             ctx.fillRect(0, 0, width, height);
 
             time++;
-            const angleOffset = time * 0.008; // 旋转速度
+            
+            // 自动旋转逻辑（当用户不拖拽时）
+            if (!isDragging) {
+                targetRotationY += autoRotateSpeed;
+            }
+            // 缓动平滑处理：当前角度趋向于目标角度
+            rotationY += (targetRotationY - rotationY) * 0.1;
+            rotationX += (targetRotationX - rotationX) * 0.1;
 
-            // 1. 绘制雪花 (背景层)
+            // 1. 绘制雪花
             snowParticles.forEach(p => { p.update(); p.draw(); });
 
-            // 2. 绘制树 (按Y轴排序其实更好，但这里用简单的Z轴混合也很有氛围)
-            // 为了让背面的粒子变暗，增强立体感，可以做一个简单的排序
+            // 2. 绘制树 (进行深度排序)
+            // 我们需要先计算变换后的Z坐标，然后根据Z排序
+            // 为了性能，我们不仅计算Z，还可以把project后的xy缓存起来，但JS引擎够快，我们直接sort
             particles.sort((a, b) => {
-                // 预计算旋转后的Z坐标用于排序（稍微有点消耗性能，但效果好）
-                const cosA = Math.cos(angleOffset);
-                const sinA = Math.sin(angleOffset);
-                const zA = a.x * sinA + a.z * cosA;
-                const zB = b.x * sinA + b.z * cosA;
-                return zA - zB;
+                const p3dA = rotatePoint(a.x, a.y, a.z, rotationY, rotationX);
+                const p3dB = rotatePoint(b.x, b.y, b.z, rotationY, rotationX);
+                return p3dA.z - p3dB.z;
             });
 
-            particles.forEach(p => p.draw(angleOffset, time));
+            particles.forEach(p => p.draw(time));
 
             // 3. 绘制树顶星星
-            const topPos = project3D(0, -TREE_HEIGHT / 2 - 2, 0);
+            const topRaw = {x: 0, y: -TREE_HEIGHT / 2 - 2, z: 0};
+            const topRot = rotatePoint(topRaw.x, topRaw.y, topRaw.z, rotationY, rotationX);
+            const topPos = project3D(topRot.x, topRot.y, topRot.z);
+
             if (topPos.scale > 0) {
-                // 星星自转
                 ctx.save();
                 ctx.translate(topPos.x, topPos.y);
                 ctx.rotate(time * 0.01); 
-                // 呼吸效果
                 const scale = 1 + 0.1 * Math.sin(time * 0.05);
                 ctx.scale(scale, scale);
                 drawStar(0, 0, 5, 12 * topPos.scale, 5 * topPos.scale, "#FFD700");
-                
-                // 星星中心的高亮
                 ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
                 ctx.beginPath();
                 ctx.arc(0, 0, 3 * topPos.scale, 0, Math.PI*2);
                 ctx.fill();
-                
                 ctx.restore();
             }
 
